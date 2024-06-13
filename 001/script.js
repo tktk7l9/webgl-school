@@ -1,13 +1,3 @@
-// = 009 ======================================================================
-// これまでのサンプルでは、メッシュは「１つのジオメトリから１つ」ずつ生成してい
-// ましたが、実際の案件では、同じジオメトリを再利用しながら「複数のメッシュ」を
-// 生成する場面のほうが多いかもしれません。
-// このとき、3D シーンに複数のオブジェクトを追加する際にやってしまいがちな間違い
-// として「ジオメトリやマテリアルも複数回生成してしまう」というものがあります。
-// メモリ効率よく複数のオブジェクトをシーンに追加する方法をしっかりおさえておき
-// ましょう。
-// ============================================================================
-
 import * as THREE from "../lib/three.module.js";
 import { OrbitControls } from "../lib/OrbitControls.js";
 
@@ -43,7 +33,7 @@ class ThreeApp {
    * レンダラー定義のための定数
    */
   static RENDERER_PARAM = {
-    clearColor: 0x666666, // 画面をクリアする色
+    clearColor: 0x00000, // 画面をクリアする色
     width: window.innerWidth, // レンダラーに設定する幅
     height: window.innerHeight, // レンダラーに設定する高さ
   };
@@ -60,7 +50,7 @@ class ThreeApp {
    */
   static AMBIENT_LIGHT_PARAM = {
     color: 0xffffff, // 光の色
-    intensity: 0.1, // 光の強度
+    intensity: 1, // 光の強度
   };
   /**
    * マテリアル定義のための定数
@@ -75,8 +65,8 @@ class ThreeApp {
   directionalLight; // 平行光源（ディレクショナルライト）
   ambientLight; // 環境光（アンビエントライト）
   material; // マテリアル
-  torusGeometry; // トーラスジオメトリ
-  torusArray; // トーラスメッシュの配列 @@@
+  boxGeometry; // ボックスジオメトリ
+  boxArray; // ボックスメッシュの配列
   controls; // オービットコントロール
   axesHelper; // 軸ヘルパー
   isDown; // キーの押下状態用フラグ
@@ -130,28 +120,29 @@ class ThreeApp {
     // マテリアル
     this.material = new THREE.MeshPhongMaterial(ThreeApp.MATERIAL_PARAM);
 
-    // 共通のジオメトリ、マテリアルから、複数のメッシュインスタンスを作成する @@@
-    const torusCount = 10;
-    const transformScale = 5.0;
-    this.torusGeometry = new THREE.TorusGeometry(0.5, 0.2, 8, 16);
-    this.torusArray = [];
-    for (let i = 0; i < torusCount; ++i) {
-      // トーラスメッシュのインスタンスを生成
-      const torus = new THREE.Mesh(this.torusGeometry, this.material);
+    // 共通のジオメトリ、マテリアルから、複数のメッシュインスタンスを作成する
+    const boxCount = 1500;
+    const transformScale = 3.0;
+    this.boxGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    this.boxArray = [];
+    for (let i = 0; i < boxCount; ++i) {
+      // ボックスメッシュのインスタンスを生成
+      const box = new THREE.Mesh(this.boxGeometry, this.material);
       // 座標をランダムに散らす
-      torus.position.x = (Math.random() * 2.0 - 1.0) * transformScale;
-      torus.position.y = (Math.random() * 2.0 - 1.0) * transformScale;
-      torus.position.z = (Math.random() * 2.0 - 1.0) * transformScale;
+      box.position.x = (Math.random() * 2.0 - 1.0) * transformScale;
+      box.position.y = (Math.random() * 2.0 - 1.0) * transformScale;
+      box.position.z = (Math.random() * 2.0 - 1.0) * transformScale;
+
       // シーンに追加する
-      this.scene.add(torus);
+      this.scene.add(box);
       // 配列に入れておく
-      this.torusArray.push(torus);
+      this.boxArray.push(box);
     }
 
     // 軸ヘルパー
-    const axesBarLength = 5.0;
+    const axesBarLength = 3.0;
     this.axesHelper = new THREE.AxesHelper(axesBarLength);
-    this.scene.add(this.axesHelper);
+    // this.scene.add(this.axesHelper);
 
     // コントロール
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -205,11 +196,37 @@ class ThreeApp {
     // コントロールを更新
     this.controls.update();
 
+    // シーンを回転
+    this.scene.rotation.y += 0.0005;
+    this.scene.rotation.x += 0.0003;
+
+    this.boxArray.forEach((box) => {
+      // boxの色を時間経過でランダムに変える
+      box.material.color.setRGB(
+        Math.random() * 0.1 + 1,
+        Math.random() * 0.1 + 1,
+        Math.random() * 0.1 + 1
+      );
+
+      // boxの回転
+      box.rotation.x += Math.random() * 0.01;
+      box.rotation.y += Math.random() * 0.01;
+      box.rotation.z += Math.random() * 0.01;
+
+      // boxの位置を変更
+      box.position.y += 0.005;
+
+      // 画面外に出たらランダムな位置のY座標に戻す
+      if (box.position.y > 3.0) {
+        box.position.y = (Math.random() * 2.0 - 1.0) * 3.0;
+      }
+    });
+
     // フラグに応じてオブジェクトの状態を変化させる
     if (this.isDown === true) {
-      // Y 軸回転 @@@
-      this.torusArray.forEach((torus) => {
-        torus.rotation.y += 0.05;
+      // Y 軸回転
+      this.boxArray.forEach((box) => {
+        box.rotation.y += 1;
       });
     }
 
